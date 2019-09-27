@@ -23,7 +23,7 @@ def check_url(video_url_list):  # this fn performs the vid_url check
             else:
                 video_url_dict["video"] = 'No'
 
-            if video_url_response_data.headers['Content-Type'] == 'video/mp4; charset=utf-8':  # for AA specifically
+            if video_url_response_data.headers['Content-Type'] == content_types[1]:  # for AA specifically
                 del video_url_dict["browser"], video_url_dict["browser_version"]  # need to delete these keys
                 video_url_dict.update(device= video_url_list.get('device'), app_name=video_url_list.get('app_name'),
                                       app_url=video_url_list.get('app_url'))  # replace the above keys with these for AA
