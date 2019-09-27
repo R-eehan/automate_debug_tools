@@ -5,6 +5,7 @@ import requests
 from setup import UPLOAD_FOLDER, DOWNLOAD_FOLDER, remove_and_create_download_folder
 from command_parser import command_parser_main
 from vid_parser import vid_parser_main
+from app_aut_vid_parser import app_aut_vid_parser_main
 from console_parser import console_parser_main
 from networklog_parser import network_parser_main
 from seleniumlog_parser import selenium_parser_main
@@ -17,11 +18,30 @@ app.config['DOWNLOAD_FOLDER'] = DOWNLOAD_FOLDER
 app.config['MAX_CONTENT_LENGTH'] = 8 * 1024 * 1024
 username = None
 password = None
+filename = None
 ALLOWED_EXTENSIONS = {'json', 'csv'}
 
 
 def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
+    # I believe this to only allow csv files to be uploaded
+
+
+def process():  # figure out a way to use this method for entire app
+    if request.method == 'POST':
+        if 'file' not in request.files:
+            print('No file attached in request')
+            return render_template('upload_autvid.html')
+        file = request.files['file']
+        if file.filename == '':
+            error = 'Please select a file to proceed'
+            return render_template('upload_autvid.html',error=error)
+            # return redirect(request.url)  # debug what is request.url?
+        if file and allowed_file(file.filename):
+            global filename  # declared 'filename' = global so that can be used later.
+            filename = secure_filename(file.filename)
+            file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
+            return filename  # this value(filename) will be used below when process is called
 
 
 @app.route('/', methods=['GET', 'POST'])
@@ -71,23 +91,26 @@ def aut_vid():
     return render_template('upload_autvid.html')
 
 
-@app.route('/vidstatusaut', methods=['POST'])
+@app.route('/upload_autvid.html', methods=['POST'])  # can be standardized across app. Will check.
+def check_for_product():
+    process()
+    if request.form.get('app_automate') == 'on':
+        return redirect(url_for('app_aut_vid_result'))
+    else:
+        return redirect(url_for('aut_vid_result'))
+
+
+@app.route('/automate-results')
 def aut_vid_result():
-    if request.method == 'POST':
-        if 'file' not in request.files:
-            print('No file attached in request')
-            return redirect(request.url)
-        file = request.files['file']
-        if file.filename == '':
-            print('No file selected')
-            return redirect(request.url)
-        if file and allowed_file(file.filename):
-            filename = secure_filename(file.filename)
-            file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
-            results = vid_parser_main(filename)
-            remove_and_create_download_folder()
-            return render_template("autvidresult.html", output_list=results)
-    return render_template('upload_autvid.html')
+    results = vid_parser_main(filename)  # check vid_parser.py
+    remove_and_create_download_folder()
+    return render_template("autvidresult.html", output_list=results)  # results = output of vid_parser_main()
+
+@app.route('/app-automate-results')
+def app_aut_vid_result():
+    results = app_aut_vid_parser_main(filename)  # check app_aut_vid_parser.py
+    remove_and_create_download_folder()
+    return render_template("app_autvidresult.html", output_list=results)
 
 
 @app.route('/autconsole')

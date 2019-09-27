@@ -3,7 +3,7 @@ import sys
 import logging
 import json
 from parallel_download import download
-from setup import UPLOAD_FOLDER, DOWNLOAD_FOLDER, BROWSERSTACK_AUT_SESSION_LOG_URL
+from setup import UPLOAD_FOLDER, DOWNLOAD_FOLDER, BROWSERSTACK_APP_AUT_SESSION_LOG_URL
 from vid_parallel import vid_parallel_download
 
 # essentially creating a logfile called "debug.log" for each functionality and saving it. This logfile logs all details.
@@ -16,7 +16,7 @@ logging.basicConfig(level=logging.DEBUG, filename=LOG_FILENAME, format=format_st
 def file_to_meta_extractor(file):  # this is called in vid_parser_main()
     with open(UPLOAD_FOLDER + file) as csv_file:
         # print(csv_file)
-        meta_info_list = list(csv.DictReader(csv_file, delimiter=',')) # converts uploaded csv file data into a list of ordered dicts
+        meta_info_list = list(csv.DictReader(csv_file, delimiter=',')) # converts uploaded csv data into a list of ordered dicts
     # print(meta_info_list)  # use this to see what is returned.
     return meta_info_list
 
@@ -27,7 +27,7 @@ def session_json_reader(file_path):  # used in vid_status_with_session(). Jump b
         # print(data)
         # print(type(data))
         data = data['automation_session']
-        # print data
+        # print(data)
 
     return data
 
@@ -43,22 +43,23 @@ def vid_status_with_session(meta_info_list):
         print(session_json)  # session_json is a FILE PATH with a .json extension.
         info = session_json_reader(session_json)  # the json file is passed to session_json_reader()
         video_url_dict = {
-            "hashed_id": meta['hashed_id'],
-            "video_url": info.get('video_url'),
-            'os_version': info.get('os_version'),
-            'os': info.get('os'),
-            'browser': info.get('browser'),
-            'browser_version': info.get('browser_version'),
-            'reason': info.get('reason'),
-            'build_name': info.get('build_name'),
-            'session_name': info.get('name')
+	        "hashed_id": meta['hashed_id'],
+	        "video_url": info.get('video_url'),
+	        "os": info.get('os'),
+	        "os_version": info.get('os_version'),
+	        "device": info.get('device'),
+	        "app_name": info['app_details'].get('app_name'),
+	        "app_url": info['app_details'].get('app_url'),
+	        "reason": info.get('reason'),
+	        "build_name": info.get('build_name'),
+	        "session_name": info.get('name')
         }
         video_url_list.append(video_url_dict)
         # print(video_url_list)
 
     thread = 10
     video_url_dict_list = vid_parallel_download(thread, video_url_list)  # refer vid_parallel_download.py
-    # print(video_url_dict_list)
+    print(video_url_dict_list)
 
     return video_url_dict_list  # dict containing video(Yes/No) and hashed_id
 
@@ -83,11 +84,11 @@ def information_merge(meta_info_list):
     return session_info_list
 
 
-def vid_parser_main(csv_fn):  # main function, calls file_to_meta() and information_merge()
+def app_aut_vid_parser_main(csv_fn):  # main function, calls file_to_meta() and information_merge()
     file_type = ".json"
     meta_info_list = file_to_meta_extractor(csv_fn)  # jump to file_to_meta_extractor()
-    session_urls_list = [BROWSERSTACK_AUT_SESSION_LOG_URL + meta['hashed_id'] + file_type for meta in meta_info_list]
-    # print(session_urls_list)  # list of URLs, eg: 'https://api.browserstack.com/automate/sessions/<session_id>.json'
+    session_urls_list = [BROWSERSTACK_APP_AUT_SESSION_LOG_URL + meta['hashed_id'] + file_type for meta in meta_info_list]
+    # print(session_urls_list)  # list of URLs,eg:'https://api-cloud.browserstack.com/app-automate/sessions/<s_id>.json'
     download(session_urls_list, DOWNLOAD_FOLDER)  # imported from parallel_download.py
     final_result = information_merge(meta_info_list)  # jump to information_merge()
 
@@ -97,6 +98,6 @@ def vid_parser_main(csv_fn):  # main function, calls file_to_meta() and informat
 if __name__ == '__main__':
     if len(sys.argv) == 2:
         csv_filename = sys.argv[1]
-        vid_parser_main(csv_filename)
+        app_aut_vid_parser_main(csv_filename)
     else:
         print("Usage: python3 vid_parser.py filename.csv")
