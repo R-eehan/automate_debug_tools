@@ -6,7 +6,7 @@ content_types = ['application/octet-stream; charset=utf-8', 'video/mp4; charset=
 
 def check_url(video_url_list):  # this fn performs the vid_url check
 
-    with requests.get(video_url_list["video_url"], stream=True, timeout=5) as video_url_response_data:
+    with requests.get(video_url_list["video_url"], stream=True, timeout=10) as video_url_response_data:
             # print(video_url_response_data.headers)
             video_url_dict = {
                 "hashed_id": video_url_list["hashed_id"],
